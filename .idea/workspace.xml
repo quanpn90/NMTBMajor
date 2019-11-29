@@ -1,14 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="78e2f20e-1040-425b-a647-2bc3cc72bd5f" name="Default Changelist" comment="" />
+    <list default="true" id="78e2f20e-1040-425b-a647-2bc3cc72bd5f" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/onmt/Constants.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/Dataset.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/Dict.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/Optim.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/inference/FastTranslator.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/inference/Search.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/train_utils/__init__.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/onmt/train_utils/trainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
   <component name="ProjectId" id="1TEmS07v87dw92LHD3K5UhIK013" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="PropertiesComponent">
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/onmt" />
@@ -17,7 +32,9 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/onmt/train_utils" />
       <recent name="$PROJECT_DIR$/onmt" />
+      <recent name="$PROJECT_DIR$/onmt/data_utils" />
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
@@ -43,11 +60,25 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1573033624367</updated>
-      <workItem from="1573033636900" duration="19796000" />
+      <workItem from="1573033636900" duration="22448000" />
+      <workItem from="1575042140912" duration="1856000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
 </project>
