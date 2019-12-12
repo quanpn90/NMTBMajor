@@ -1,4 +1,3 @@
-import onmt
 
 
 def split_line_by_char(line, word_list=["<unk>"]):

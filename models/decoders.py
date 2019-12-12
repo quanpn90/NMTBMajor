@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .attention import MultiHeadAttn, RelLearnableMultiHeadAttn, RelPartialLearnableMultiHeadAttn
+from .attention import MultiHeadAttn, RelLearnableMultiHeadAttn, RelPartialLearnableMultiHeadAttn, FastRelPartialLearnableMultiHeadAttn
 from .dropout import VariationalDropout
 
 
@@ -74,7 +74,9 @@ class RelPartialLearnableDecoderLayer(nn.Module):
                  **kwargs):
         super(RelPartialLearnableDecoderLayer, self).__init__()
 
-        self.dec_attn = RelPartialLearnableMultiHeadAttn(n_head, d_model,
+        # self.dec_attn = RelPartialLearnableMultiHeadAttn(n_head, d_model,
+        #                                                  d_head, dropout, **kwargs)
+        self.dec_attn = FastRelPartialLearnableMultiHeadAttn(n_head, d_model,
                                                          d_head, dropout, **kwargs)
         self.pos_ff = PositionwiseFF(d_model, d_inner, dropout)
 

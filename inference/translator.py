@@ -1,66 +1,66 @@
-import onmt
-import onmt.modules
-import torch.nn as nn
 import torch
 import math
-from torch.autograd import Variable
-from onmt.ModelConstructor import build_model
-import torch.nn.functional as F
-from onmt.inference.Search import BeamSearch, DiverseBeamSearch
-import onmt.Translator as Translator
+from inference.search import BeamSearch, DiverseBeamSearch
+from collections import defaultdict
+from data_utils import collate_tensors
 
-model_list = ['transformer', 'stochastic_transformer']
 
-class FastTranslator(Translator):
+class Translator(object):
     """
-    A fast implementation of the Beam Search based translator
-    Based on Fairseq implementation
+    Translation handling for the
     """
-    def __init__(self, opt):
+    def __init__(self, model, vocab, beam_size, max_length,
+                 normalize=True, alpha=1.0, verbose=True, no_context=False):
 
-        super().__init__(opt)
-        self.search = BeamSearch(self.tgt_dict)
-        self.eos = onmt.Constants.EOS
-        self.pad = onmt.Constants.PAD
-        self.bos = self.bos_id
-        self.vocab_size = self.tgt_dict.size()
+        self.vocab_size = len(vocab)
+        self.search = BeamSearch(self.vocab_size)
+        self.eos = vocab.eos_idx
+        self.pad = vocab.pad_idx
+        self.bos = vocab.bos_idx
+        self.vocab = vocab
         self.min_len = 1
-        self.normalize_scores = opt.normalize
-        self.len_penalty = opt.alpha
+        self.max_length = max_length
+        self.normalize_scores = normalize
+        self.len_penalty = alpha
         self.no_repeat_ngram_size = 0
+        self.model = model
+        self.beam_size = beam_size
+        self.models = dict()
+        self.models[0] = self.model
+        self.n_models = 1
+        self.no_context = no_context
+        self.device = next(model.parameters()).device
+        # self.device = model.device
+        print(self.no_context)
 
-        if opt.verbose:
-            print('* Current bos id: %d' % self.bos_id, onmt.Constants.BOS )
-            print('* Using fast beam search implementation')
+        self.pad = -1000
+        
+        if verbose:
+            print('* Current bos id: %d' % self.bos)
+            print('* Current eos id: %d' % self.eos)
+            # print('* Using beam search')
 
-    def translateBatch(self, batch):
+        self.decoder_states = defaultdict(lambda: None)
+
+    def translate_sample(self, src):
 
         with torch.no_grad():
-            return self._translateBatch(batch)
+            return self._translate_sample(src)
 
-    def _translateBatch(self, batch):
+    def _translate_sample(self, src):
 
         # Batch size is in different location depending on data.
 
-        beam_size = self.opt.beam_size
-        bsz = batch_size =  batch.size
+        beam_size = self.beam_size
+        bsz = src.size(1)
+        # print(src.size())
 
-        max_len = self.opt.max_sent_length
-
-        gold_scores = batch.get('source').data.new(batch_size).float().zero_()
-        gold_words = 0
-        allgold_scores = []
-
-        if batch.has_target:
-            # Use the first model to decode
-            model_ = self.models[0]
-
-            gold_words, gold_scores, allgold_scores = model_.decode(batch)
+        max_len = self.max_length
 
         #  (3) Start decoding
 
         # initialize buffers
-        src = batch.get('source')
+        # src = batch.get('source')
         scores = src.new(bsz * beam_size, max_len + 1).float().fill_(0)
         scores_buf = scores.clone()
         tokens = src.new(bsz * beam_size, max_len + 2).long().fill_(self.pad)
@@ -71,7 +71,6 @@ class FastTranslator(Translator):
         src_tokens = src.transpose(0, 1)  # batch x time
         src_lengths = (src_tokens.ne(self.eos) & src_tokens.ne(self.pad)).long().sum(dim=1)
         blacklist = src_tokens.new_zeros(bsz, beam_size).eq(-1)  # forward and backward-compatible False mask
-        prefix_tokens = None
 
         # list of completed sentences
         finalized = [[] for i in range(bsz)]
@@ -169,6 +168,7 @@ class FastTranslator(Translator):
                         'attention': hypo_attn,  # src_len x tgt_len
                         'alignment': None,
                         'positional_scores': pos_scores[i],
+                        'id': i
                     }
 
                 if len(finalized[sent]) < beam_size:
@@ -188,26 +188,32 @@ class FastTranslator(Translator):
         # initialize the decoder state, including:
         # - expanding the context over the batch dimension len_src x (B*beam) x H
         # - expanding the mask over the batch dimension    (B*beam) x len_src
-        decoder_states = dict()
+
+        # what do we do here for transformer XL?
+        # the model would 'consume' the source sentence (don't refresh the memory)
+
         for i in range(self.n_models):
-            decoder_states[i] = self.models[i].create_decoder_state(batch, beam_size, type=2)
+            self.decoder_states[i] = self.models[i].create_decoder_state(src, beam_size, self.decoder_states[i])
 
         # Start decoding
         for step in range(max_len + 1):  # one extra step for EOS marker
             # reorder decoder internal states based on the prev choice of beams
+            # print("Step number %d" % step)
+            # print(reorder_state)
             if reorder_state is not None:
                 if batch_idxs is not None:
                     # update beam indices to take into account removed sentences
                     corr = batch_idxs - torch.arange(batch_idxs.numel()).type_as(batch_idxs)
                     reorder_state.view(-1, beam_size).add_(corr.unsqueeze(-1) * beam_size)
                 for i, model in enumerate(self.models):
-                    decoder_states[i]._reorder_incremental_state(reorder_state)
+                    self.decoder_states[i]._reorder_incremental_state(reorder_state)
 
             decode_input = tokens[:, :step + 1]
-            lprobs, avg_attn_scores = self._decode(decode_input, decoder_states)
+            lprobs, avg_attn_scores = self._decode(decode_input, self.decoder_states)
             avg_attn_scores = None
 
-            lprobs[:, self.pad] = -math.inf  # never select pad
+            if self.pad >= 0:
+                lprobs[:, self.pad] = -math.inf  # never select pad
 
             # handle min and max length constraints
             if step >= max_len:
@@ -281,11 +287,15 @@ class FastTranslator(Translator):
                 for bbsz_idx in range(bsz * beam_size):
                     lprobs[bbsz_idx, banned_tokens[bbsz_idx]] = -math.inf
 
+            # return the top 2k scores and indices
+            # choose the first k which don't predict eos to continue
             cand_scores, cand_indices, cand_beams = self.search.step(
                 step,
                 lprobs.view(bsz, -1, self.vocab_size),
                 scores.view(bsz, beam_size, -1)[:, :, :step],
             )
+            # print(cand_scores.size(), cand_scores)
+            # print(cand_indices, cand_beams)
 
             # cand_bbsz_idx contains beam indices for the top candidate
             # hypotheses, with a range of values: [0, bsz*beam_size),
@@ -310,6 +320,9 @@ class FastTranslator(Translator):
                     mask=eos_mask[:, :beam_size],
                     out=eos_scores,
                 )
+                # print("")
+                # print("Finalizing ", cand_indices,   cand_bbsz_idx, eos_bbsz_idx)
+                # print("")
                 finalized_sents = finalize_hypos(step, eos_bbsz_idx, eos_scores)
                 num_remaining_sent -= len(finalized_sents)
 
@@ -318,11 +331,13 @@ class FastTranslator(Translator):
                 break
             assert step < max_len
 
+            # ruling out the finished sentences from the mini batch (all of the beams finished for a sentence)
             if len(finalized_sents) > 0:
+
                 new_bsz = bsz - len(finalized_sents)
 
                 # construct batch_idxs which holds indices of batches to keep for the next pass
-                batch_mask = cand_indices.new_ones(bsz)
+                batch_mask = cand_indices.new_ones(bsz)  # bsz of 1s
                 batch_mask[cand_indices.new(finalized_sents)] = 0
                 batch_idxs = batch_mask.nonzero().squeeze(-1)
 
@@ -424,13 +439,27 @@ class FastTranslator(Translator):
         for sent in range(len(finalized)):
             finalized[sent] = sorted(finalized[sent], key=lambda r: r['score'], reverse=True)
 
-        return finalized, gold_scores, gold_words, allgold_scores
+            states = self.decoder_states[0]
+
+            if self.no_context:
+                self.decoder_states = defaultdict(lambda: None)
+            #
+            # for state in states.mems:
+            #     print(state.size())
+            # for i in self.decoder_states:
+
+            #
+            # best_beam_id = finalized[sent][0]['id']
+            # for i in self.decoder_states:
+            #     self.decoder_states[i]._retain_best_beam(best_beam_id)
+
+        return finalized
 
     def _decode(self, tokens, decoder_states):
 
         # require batch first for everything
         outs = dict()
-        attns = dict()
+        mems = dict()
 
         for i in range(self.n_models):
             decoder_output = self.models[i].step(tokens, decoder_states[i])
@@ -441,42 +470,48 @@ class FastTranslator(Translator):
 
             # batch * beam x vocab_size
             # outs[i] = self.models[i].generator(decoder_hidden)
-            outs[i] = decoder_output['log_prob']
-            attns[i] = decoder_output['coverage']
+            outs[i] = decoder_output[0]
+            mems[i] = decoder_output[1:]
 
-        out = self._combine_outputs(outs)
-        attn = self._combine_attention(attns)
+        # out = self._combine_outputs(outs)
+        out = outs[0]
+        # attn = self._combine_attention(attns)
         # attn = attn[:, -1, :] # I dont know what this line means
         attn = None # lol this is never used probably
 
-        return out, attn
+        return out, mems
 
-    def translate(self, src_data, tgt_data, type='mt'):
+    def translate(self, src):
         #  (1) convert words to indexes
-        dataset = self.build_data(src_data, tgt_data, type=type)
-        batch = dataset.next()[0]
-        if self.cuda:
-            batch.cuda(fp16=self.fp16)
+        # dataset = self.build_data(src_data, tgt_data, type=type)
+        # batch = dataset.next()[0]
+        # if self.cuda:
+        #     batch.cuda(fp16=self.fp16)
         # ~ batch = self.to_variable(dataset.next()[0])
-        batch_size = batch.size
+        # batch_size = batch.size
+        # batch_size = 1
+        src_tensors, _, _, _ = collate_tensors(self.vocab, src, -1, -1, self.device, align_right=True)
+        batch_size = src_tensors.size(1)
+        n_best = self.beam_size
 
         #  (2) translate
-        finalized, gold_score, gold_words, allgold_words = self.translateBatch(batch)
+        finalized = self.translate_sample(src_tensors)
         pred_length = []
+
 
         #  (3) convert indexes to words
         pred_batch = []
         for b in range(batch_size):
             pred_batch.append(
-                [self.build_target_tokens(finalized[b][n]['tokens'], src_data[b], None)
-                 for n in range(self.opt.n_best)]
+                [finalized[b][n]['tokens']
+                 for n in range(self.beam_size)]
             )
         pred_score = []
         for b in range(batch_size):
             pred_score.append(
                 [torch.FloatTensor([finalized[b][n]['score']])
-                 for n in range(self.opt.n_best)]
+                 for n in range(self.beam_size)]
             )
 
-        return pred_batch, pred_score, pred_length, gold_score, gold_words, allgold_words
+        return pred_batch, pred_score, pred_length
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2017-present, Facebook, Inc.
+    # Copyright (c) 2017-present, Facebook, Inc.
 # All rights reserved.
 #
 # This source code is licensed under the license found in the LICENSE file in
@@ -6,17 +6,17 @@
 # can be found in the PATENTS file in the same directory.
 
 import torch
-import onmt
+# import onmt
 
 
 class Search(object):
 
-    def __init__(self, tgt_dict):
-        self.pad = onmt.Constants.PAD
-        self.unk = onmt.Constants.UNK
-        self.eos = onmt.Constants.EOS
-        self.bos = onmt.Constants.BOS
-        self.vocab_size = tgt_dict.size()
+    def __init__(self, vocab_size):
+        # self.pad = onmt.Constants.PAD
+        # self.unk = onmt.Constants.UNK
+        # self.eos = onmt.Constants.EOS
+        # self.bos = onmt.Constants.BOS
+        self.vocab_size = vocab_size
         self.scores_buf = None
         self.indices_buf = None
         self.beams_buf = None
@@ -54,8 +54,8 @@ class Search(object):
 
 class BeamSearch(Search):
 
-    def __init__(self, tgt_dict):
-        super().__init__(tgt_dict)
+    def __init__(self, vocab_size):
+        super().__init__(vocab_size)
 
     def step(self, step, lprobs, scores):
         super()._init_buffers(lprobs)

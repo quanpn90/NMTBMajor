@@ -74,7 +74,7 @@ class PositionalEmbedding(nn.Module):
 # The Memory Transformer LM implementation
 class MemTransformerLM(nn.Module):
 
-    def __init__(self, n_token, n_layer, n_head, d_model, d_head, d_inner,
+    def __init__(self, vocab, n_layer, n_head, d_model, d_head, d_inner,
                  dropout, dropatt, tie_weight=True, d_embed=None,
                  div_val=1, tie_projs=[False], pre_lnorm=False,
                  tgt_len=None, ext_len=None, mem_len=None,
@@ -83,6 +83,8 @@ class MemTransformerLM(nn.Module):
                  sample_softmax=-1, word_dropout=0.0, label_smoothing=0.0,
                  scale_emb=True, death_rate=0.0):
         super(MemTransformerLM, self).__init__()
+
+        n_token = len(vocab)
         self.n_token = n_token
 
         d_embed = d_model if d_embed is None else d_embed
@@ -93,7 +95,7 @@ class MemTransformerLM(nn.Module):
         self.word_dropout = word_dropout
         self.label_smoothing = label_smoothing
         self.scale_emb = scale_emb
-        self.word_emb = nn.Embedding(n_token, d_embed)
+        self.word_emb = nn.Embedding(n_token, d_embed, padding_idx=vocab.pad_idx)
 
         self.drop = nn.Dropout(dropout)
 
@@ -200,7 +202,7 @@ class MemTransformerLM(nn.Module):
         return new_mems
 
     # forward processing
-    def _forward(self, dec_inp, mems=None):
+    def _forward(self, dec_inp, mems=None, prev_input=None):
         # L x B
         qlen, bsz = dec_inp.size()
 
@@ -232,6 +234,14 @@ class MemTransformerLM(nn.Module):
             dec_attn_mask = torch.triu(
                 word_emb.new_ones(qlen, klen), diagonal=1 + mlen).byte()[:, :, None]
 
+        # pad_mask
+        if prev_input is not None:
+            full_seq = torch.cat([prev_input, dec_inp])
+        else:
+            full_seq = dec_inp
+        pad_mask = full_seq.eq(0).byte()  # L x B
+        dec_attn_mask = dec_attn_mask + pad_mask.unsqueeze(0)
+        dec_attn_mask = dec_attn_mask.gt(0)
         dec_attn_mask = dec_attn_mask.bool()
 
         hids = []
@@ -267,14 +277,15 @@ class MemTransformerLM(nn.Module):
 
         return core_out, new_mems
 
-    def forward(self, data, target, target_weight, *mems):
+    def forward(self, data, target, target_weight, *mems, prev_input=None):
         # nn.DataParallel does not allow size(0) tensors to be broadcasted.
         # So, have to initialize size(0) mems inside the model forward.
         # Moreover, have to return new_mems to allow nn.DataParallel to piece
         # them together.
         if not mems: mems = self.init_mems()
         # target_weight = None
-        hidden, new_mems = self._forward(data, mems=mems)
+        hidden, new_mems = self._forward(data, mems=mems, prev_input=prev_input)
+        # Return immediately if None
         if target is None:
             if new_mems is None:
                 return [hidden]
@@ -337,12 +348,17 @@ class MemTransformerLM(nn.Module):
         else:
             mems = decoder_state.mems
 
+        # for mem in mems:
+        #     print(mem.size())
+
         # take the final step of the sequence as current input (no re-calculation)
         input_ = data[:, -1].unsqueeze(1).t()
+        # input_ = data.t()
+        # print(input_.size())
 
         # print(data.size())
         # print(mems[0].size())
-        hidden, new_mems = self._forward(input_, mems=mems)
+        hidden, new_mems = self._forward(input_, mems=mems, prev_input=decoder_state.seq)
         # print(new_mems[0].size())
 
         pred_hid = hidden[-1:]
@@ -351,7 +367,7 @@ class MemTransformerLM(nn.Module):
         pred_hid = pred_hid.view(-1, pred_hid.size(-1))
         logit = self.out_layer(pred_hid).float()
         prob = F.log_softmax(logit, dim=-1)
-        decoder_state.update_mems(new_mems)
+        decoder_state.update_mems(new_mems, input_)
 
         if new_mems is None:
             return [prob]
@@ -380,7 +396,7 @@ class MemTransformerLM(nn.Module):
 
         # always return the decoder state
         clone = True if dec_state is None else False
-        dec_state = DecoderState(mems, src.device, beam_size=beam_size, clone=clone)
+        dec_state = DecoderState(mems, src, src.device, beam_size=beam_size, clone=clone)
 
         return dec_state
 
@@ -392,26 +408,33 @@ class DecoderState(object):
     input_feeding and non-recurrent models.
     Modules need to implement this to utilize beam search decoding.
     """
-    def __init__(self, mems, device, beam_size=1, clone=False):
+    def __init__(self, mems, src, device, beam_size=1, clone=False):
         self.mems = mems
         self.device = device
         self.beam_size = beam_size
+        self.seq = src  # T x B
 
         # only works with bsz 1 (at the moment, maybe)
-        if clone:
-            bsz = 1
-            new_order = torch.arange(bsz).view(-1, 1).repeat(1, self.beam_size).view(-1)
-            new_order = new_order.to(device)
+        # if clone:
+            # bsz = 1
+        batch_size = mems[0].size(1)
+        new_order = torch.arange(batch_size).view(-1, 1).repeat(1, self.beam_size).view(-1)
+        new_order = new_order.to(device)
 
-            for i, mem in enumerate(self.mems):
-                self.mems[i] = mem.index_select(1, new_order)
+        self.seq = self.seq.index_select(1, new_order)
+        for i, mem in enumerate(self.mems):
+            self.mems[i] = mem.index_select(1, new_order)
 
-    def update_mems(self, mems, beam_size=1):
+    def update_mems(self, mems, new_input=None):
         self.mems = mems
+        if new_input is not None:
+            self.seq = torch.cat([self.seq, new_input], dim=0)
 
     def _reorder_incremental_state(self, reorder_state):
+        # print("Reordering incremental state")
         for i, mem in enumerate(self.mems):
             self.mems[i] = mem.index_select(1, reorder_state)
+        self.seq = self.seq.index_select(1, reorder_state)
 
     def _retain_best_beam(self, best_beam_id):
         for i, mem in enumerate(self.mems):

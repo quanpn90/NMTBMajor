@@ -6,6 +6,7 @@ import torch
 import torch.utils.data
 from functools import lru_cache
 
+
 def read_longs(f, n):
     a = np.empty(n, dtype=np.int64)
     f.readinto(a)
@@ -200,7 +201,11 @@ class MMapIndexedDatasetBuilder(object):
         self._sizes = []
 
     def add_item(self, tensor):
-        np_array = np.array(tensor.numpy(), dtype=self._dtype)
+
+        if isinstance(tensor, torch.Tensor):
+            np_array = np.array(tensor.numpy(), dtype=self._dtype)
+        else:
+            np_array = tensor.astype(self._dtype)
         self._data_file.write(np_array.tobytes(order='C'))
         self._sizes.append(np_array.size)
 
