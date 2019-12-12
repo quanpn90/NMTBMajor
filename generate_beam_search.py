@@ -89,13 +89,6 @@ ntokens = model_args.n_token
 
 eval_batch_size = args.batch_size
 args.eval_tgt_len = args.tgt_len
-# tr_iter = corpus.get_iterator('train', args.batch_size, args.tgt_len,
-#                               device=device, ext_len=args.ext_len, bos_id=bos_id, eos_id=eos_id)
-# va_iter = corpus.get_iterator('valid', eval_batch_size, args.eval_tgt_len,
-#                               device=device, ext_len=args.ext_len, bos_id=bos_id, eos_id=eos_id)
-# te_iter = corpus.get_iterator('test', eval_batch_size, args.eval_tgt_len,
-#                               device=device, ext_len=args.ext_len, bos_id=bos_id, eos_id=eos_id)
-
 
 # Load the best saved model.
 # with open(os.path.join(args.work_dir, 'model.average.pt'), 'rb') as f:
@@ -201,37 +194,6 @@ def translate_file(input_file, output_file):
     # catch the last batch
     if len(src_batch) > 0:
         counter = translate_sents(src_batch, outf, counter)
-
-            # read in the source sentence
-            # src = vocab.convert_to_tensor(words).unsqueeze(1).contiguous().to(device)
-            # src_batch.append(words)
-            # batch_size += len(words)
-
-            # if batch_size > args.batch_size
-
-            # translate using the beam searching model
-            # pred_batch, pred_score, pred_length = translator.translate(src)
-            #             # best_ids = pred_batch[0][0]
-            #             # best_sent = []
-            #             # # print(best_ids.size())
-            #             # for i in range(best_ids.size(0)):
-            #             #
-            #             #     word = vocab.get_sym(best_ids[i].item())
-            #             #
-            #             #     if word not in ["<bos>", "<eos>"]:
-            #             #         best_sent.append(word)
-            #             #
-            #             # best_sent = " ".join(best_sent)
-            #             # counter += 1
-            #             #
-            #             # print("SOURCE %d : %s" % (counter, line.strip()))
-            #             # print("OUTPUT %d : %s" % (counter, best_sent))
-            #             # output_sentence = best_sent
-            #             # outf.write(output_sentence + "\n")
-            #             # print("")
-            #             #
-            #             # if args.debug:
-            #             #     exit()
 
     inread.close()
 

@@ -2,49 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="78e2f20e-1040-425b-a647-2bc3cc72bd5f" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/webServers.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/average_checkpoints.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/binarize_data.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data/binarizer.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/data_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/eval.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/generate.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/generate_beam_search.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models/mem_transformer_original.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/option.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/train_double_modes.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/translate.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/exp_utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/log_uniform_sampler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/scheduler.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/vocabulary.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/utils/word_drop.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/NMTBMajor.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/NMTBMajor.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/Constants.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/Dataset.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/Dict.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/ModelConstructor.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/Optim.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/data_utils/IndexedDataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/IndexedDataset.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/data_utils/MMapIndexedDataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/MMapIndexedDataset.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/data_utils/Tokenizer.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/Tokenizer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/inference/FastTranslator.py" beforeDir="false" afterPath="$PROJECT_DIR$/inference/translator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/inference/Search.py" beforeDir="false" afterPath="$PROJECT_DIR$/inference/search.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/models/attention.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/attention.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/models/decoders.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/decoders.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/models/dropout.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/dropout.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/models/mem_transformer.py" beforeDir="false" afterPath="$PROJECT_DIR$/models/mem_transformer.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/train_utils/__init__.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/onmt/train_utils/trainer.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocess.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocess_multithread.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/train.py" beforeDir="false" afterPath="$PROJECT_DIR$/train.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/binarize_data.py" beforeDir="false" afterPath="$PROJECT_DIR$/binarize_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/data_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/data_utils.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/generate_beam_search.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_beam_search.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/vocabulary.py" beforeDir="false" afterPath="$PROJECT_DIR$/data/vocabulary.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -78,6 +40,7 @@
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/data" />
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="CopyFile.RECENT_KEYS">
@@ -112,7 +75,7 @@
       <updated>1573033624367</updated>
       <workItem from="1573033636900" duration="22448000" />
       <workItem from="1575042140912" duration="14819000" />
-      <workItem from="1575474335877" duration="83904000" />
+      <workItem from="1575474335877" duration="89834000" />
     </task>
     <servers />
   </component>
@@ -133,14 +96,14 @@
     </option>
   </component>
   <component name="WindowStateProjectService">
-    <state x="558" y="201" width="800" height="685" key="#Deployment" timestamp="1575556943712">
+    <state x="558" y="193" width="800" height="685" key="#Deployment" timestamp="1576169303232">
       <screen x="0" y="27" width="1920" height="1052" />
     </state>
-    <state x="558" y="201" width="800" height="685" key="#Deployment/0.27.1920.1052@0.27.1920.1052" timestamp="1575556943712" />
-    <state x="558" y="169" width="800" height="685" key="#Options" timestamp="1575562281922">
+    <state x="558" y="193" width="800" height="685" key="#Deployment/0.27.1920.1052@0.27.1920.1052" timestamp="1576169303232" />
+    <state x="558" y="153" width="800" height="685" key="#Options" timestamp="1576169282470">
       <screen x="0" y="27" width="1920" height="1052" />
     </state>
-    <state x="558" y="169" width="800" height="685" key="#Options/0.27.1920.1052@0.27.1920.1052" timestamp="1575562281922" />
+    <state x="558" y="153" width="800" height="685" key="#Options/0.27.1920.1052@0.27.1920.1052" timestamp="1576169282470" />
     <state x="422" y="190" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1575994744160">
       <screen x="0" y="27" width="1920" height="1052" />
     </state>

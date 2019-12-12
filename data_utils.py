@@ -1,11 +1,8 @@
-import os, sys
-import glob
+import os
 
-from collections import Counter, OrderedDict
-import numpy as np
 import torch
 from utils.word_drop import switchout as sw
-from utils.vocabulary import Vocab
+from data.vocabulary import Vocab
 
 
 def collate_tensors(vocab, data, bos_id, eos_id, device, align_right=True, switchout=0.0):
@@ -35,7 +32,7 @@ def collate_tensors(vocab, data, bos_id, eos_id, device, align_right=True, switc
         else:
             weight[i].narrow(0, offset, data_length).fill_(1)
 
-    # Directly switchout in collating. This actually changes the output label as well
+    # Directly switchout in collating. This actually changes the output label as well`
     if switchout > 0:
         tensor = sw(tensor, vocab,  tau=switchout, transpose=False, offset=0)
 
