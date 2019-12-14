@@ -2,6 +2,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
+def _rel_shift(x, zero_triu=False, type=1):
+    # zero_pad size: [q_len, 1, bsz, n_head]
+
+    if type == 1:
+        zero_pad = torch.zeros((x.size(0), 1, *x.size()[2:]),
+                               device=x.device, dtype=x.dtype)
+
+        x_padded = torch.cat([zero_pad, x], dim=1   )
+
+        x_padded = x_padded.view(x.size(1) + 1, x.size(0), *x.size()[2:])
+
+        x = x_padded[1:].view_as(x)
+
+        # fills the 'unnecessary' parts with zeros
+        if zero_triu:
+            ones = torch.ones((x.size(0), x.size(1)))
+            x = x * torch.tril(ones, x.size(1) - x.size(0))[:, :, None, None]
+    else:
+        raise NotImplementedError
+    return x
+
+
 class MultiHeadAttn(nn.Module):
     def __init__(self, n_head, d_model, d_head, dropout, dropatt=0):
         super(MultiHeadAttn, self).__init__()
@@ -130,11 +153,16 @@ class RelMultiHeadAttn(nn.Module):
         return x
 
     # efficient computation of B and D term using shift
+    # x dimension: [q_len, k_len, bsz, n_head]
     def _rel_shift(self, x, zero_triu=False):
+
+        # zero_pad size: [q_len, 1, bsz, n_head]
         zero_pad = torch.zeros((x.size(0), 1, *x.size()[2:]),
                                device=x.device, dtype=x.dtype)
+
         x_padded = torch.cat([zero_pad, x], dim=1)
 
+        # x_padded:
         x_padded = x_padded.view(x.size(1) + 1, x.size(0), *x.size()[2:])
 
         x = x_padded[1:].view_as(x)
@@ -279,12 +307,11 @@ class FastRelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         w_head_q = w_head_q.contiguous().view(qlen, bsz * self.n_head, self.d_head).transpose(0, 1)
         w_head_k = w_head_k.contiguous().view(klen, bsz * self.n_head, self.d_head).transpose(0, 1)
         w_head_v = w_head_v.contiguous().view(klen, bsz * self.n_head, self.d_head).transpose(0, 1)
-        # w_head_q = w_head_q.view(qlen, bsz, self.n_head, self.d_head)  # qlen x bsz x n_head x d_head
-        # w_head_k = w_head_k.view(klen, bsz, self.n_head, self.d_head)  # qlen x bsz x n_head x d_head
-        # w_head_v = w_head_v.view(klen, bsz, self.n_head, self.d_head)  # qlen x bsz x n_head x d_head
+
         w_head_q = w_head_q.view(bsz, self.n_head, qlen, self.d_head)
         w_head_k = w_head_k.view(bsz, self.n_head, klen, self.d_head)
 
+        # r_head_k is the projected positions (not depending on the tensors)
         r_head_k = r_head_k.view(rlen, self.n_head, self.d_head).transpose(0, 1)  # qlen x n_head x d_head
 
         #### compute attention score
@@ -293,6 +320,7 @@ class FastRelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         AC = torch.matmul(rw_head_q, w_head_k.transpose(2, 3))
         # AC = torch.einsum('ibnd,jbnd->ijbn', (rw_head_q, w_head_k))  # qlen x klen x bsz x n_head
 
+        # w_head_q = [
         rr_head_q = w_head_q + r_r_bias.unsqueeze(1)
         # [bsz, n_head, q_len, d] > [bsz, n_head, q_len, k_len]
         BD = torch.matmul(rr_head_q, r_head_k.transpose(1, 2))
@@ -301,6 +329,7 @@ class FastRelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         # R is actually the
         # here the B and D are actually B~ and D~ in the paper
         # then shift them to efficiently get B and D
+        # [bsz, n_head, q_len, k_len] to [q_len, k_len, bsz, n_head]
         BD = BD.transpose(0, 2).transpose(1, 3)
         BD = self._rel_shift(BD)
         BD = BD.transpose(0, 2).transpose(1, 3)
@@ -354,6 +383,7 @@ class FastRelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         return output
 
 
+# Learnable (no sin/cos position encoding)
 class RelLearnableMultiHeadAttn(RelMultiHeadAttn):
     def __init__(self, *args, **kwargs):
         super(RelLearnableMultiHeadAttn, self).__init__(*args, **kwargs)
@@ -439,3 +469,32 @@ class RelLearnableMultiHeadAttn(RelMultiHeadAttn):
         #     output = self.layer_norm(w + attn_out)
 
         return output
+
+if __name__ == '__main__':
+
+    bsz = 1
+    n_head = 1
+
+    qlen = 5
+    klen = 10
+
+    x = torch.arange(klen - 1, -1, -1.0).unsqueeze(0).repeat(qlen, 1)
+    # print(x)
+    x = x.unsqueeze(-1).unsqueeze(-1)
+    # x = torch.Tensor(qlen, klen, bsz, n_head)
+    # x.normal_(0, 1)
+
+    x = _rel_shift(x, zero_triu=True)
+
+    print(x)
+    print(x.size())
+
+    # a = torch.arange(5, -5, -1).unsqueeze(0)
+    #
+    # print(a)
+    #
+    # b = torch.arange(0, 5).unsqueeze(1)
+    #
+    # c = (a + b)
+    #
+    # print(torch.abs(c))

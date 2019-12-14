@@ -39,6 +39,8 @@ parser.add_argument('--clamp_len', type=int, default=-1,
                     help='max positional embedding index')
 parser.add_argument('--cuda', action='store_true',
                     help='use CUDA')
+parser.add_argument('--fp16', action='store_true',
+                    help='use fp16')
 parser.add_argument('--work_dir', type=str, required=True,
                     help='path to the work_dir')
 parser.add_argument('--no_log', action='store_true',
@@ -113,6 +115,10 @@ model = MemTransformerLM(vocab, model_args.n_layer, model_args.n_head, model_arg
 model.load_state_dict(checkpoint['model'])
 model.backward_compatible()
 model.eval()
+
+if args.fp16:
+    model = model.half()
+
 model = model.to(device)
 
 # test_model = copy.deepcopy(model)

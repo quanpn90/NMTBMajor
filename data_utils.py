@@ -49,7 +49,7 @@ def collate_tensors(vocab, data, bos_id, eos_id, device, align_right=True, switc
 
 
 class LMOrderedIterator(object):
-    def __init__(self, vocab, data, bsz, bptt, device='cpu', ext_len=None, bos_id=-1, eos_id=-1, **kwargs):
+    def __init__(self, vocab, data, bsz, bptt, device='cpu', ext_len=None, bos_id=-1, eos_id=-1, switchout=0.0, **kwargs):
         """
             data -- LongTensor -- the LongTensor is strictly ordered
         """
@@ -57,6 +57,7 @@ class LMOrderedIterator(object):
         self.bsz = 1
         self.bptt = bptt
         self.ext_len = ext_len if ext_len is not None else 0
+        self.switchout = switchout
 
         self.device = device
         self.data = data  # don't sort the data
@@ -134,6 +135,9 @@ class LMOrderedIterator(object):
 
             # move the offset to the next sentence
             offset = offset + data_length
+
+        if self.switchout > 0:
+            tensor = sw(tensor, self.vocab, tau=self.switchout, transpose=False, offset=0)
 
         tensor = tensor.transpose(0, 1).contiguous().to(self.device)
         weight = weight.transpose(0, 1).contiguous().to(self.device)

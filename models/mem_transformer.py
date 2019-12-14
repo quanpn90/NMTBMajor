@@ -240,8 +240,11 @@ class MemTransformerLM(nn.Module):
         else:
             full_seq = dec_inp
         pad_mask = full_seq.eq(0).byte()  # L x B
-        dec_attn_mask = dec_attn_mask + pad_mask.unsqueeze(0)
-        dec_attn_mask = dec_attn_mask.gt(0)
+
+        if pad_mask.long().sum() > 0:
+            dec_attn_mask = dec_attn_mask + pad_mask.unsqueeze(0)
+            dec_attn_mask = dec_attn_mask.gt(0)
+
         dec_attn_mask = dec_attn_mask.bool()
 
         hids = []
@@ -472,6 +475,7 @@ if __name__ == '__main__':
     tgt_len, mem_len, ext_len = 36, 36, 0
     data_len = tgt_len * 20
     args.n_token = 10000
+
     #
     # empty = torch.empty(0)
     # print(empty)

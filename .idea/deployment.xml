@@ -5,7 +5,7 @@
       <paths name="rpchp1">
         <serverdata>
           <mappings>
-            <mapping deploy="/project/wmt2012/project/quan/lib/NMTBMajor" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/project/wmt2012/project/quan/lib/TransformerXL" local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
