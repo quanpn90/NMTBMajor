@@ -4,7 +4,7 @@ import glob
 from collections import Counter, OrderedDict
 import numpy as np
 import torch
-from utils.word_drop import switchout as sw
+from utils.dropout import switchout as sw
 from utils.vocabulary import Vocab
 
 

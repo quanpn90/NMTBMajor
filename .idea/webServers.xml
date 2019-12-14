@@ -2,8 +2,8 @@
 <project version="4">
   <component name="WebServers">
     <option name="servers">
-      <webServer id="3e3db01a-88bf-4b0a-956c-cfe7a725ef4f" name="rpchp1" url="http://rg3hpc1">
-        <fileTransfer host="rg3hpc1" port="22" accessType="SFTP">
+      <webServer id="3e3db01a-88bf-4b0a-956c-cfe7a725ef4f" name="rpchp1" url="http://rg3hpc1.ira.uka.de">
+        <fileTransfer host="rg3hpc1.ira.uka.de" port="22" accessType="SFTP">
           <advancedOptions>
             <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
           </advancedOptions>

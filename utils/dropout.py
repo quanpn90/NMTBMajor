@@ -3,6 +3,13 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 
+def attention_dropout(attn_probs, p=0.2):
+
+
+
+    return attn_probs
+
+
 class VariationalDropout(torch.nn.Module):
     def __init__(self, p=0.5, batch_first=False):
         super().__init__()

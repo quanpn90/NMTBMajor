@@ -121,7 +121,7 @@ def weights_init(m):
     elif classname.find('Embedding') != -1:
         if hasattr(m, 'weight'):
             init_weight(m.weight)
-    elif classname.find('LayerNorm') != -1:
+    elif classname.find('LayerNorm') != -1 or classname.find('FusedLayerNorm') != -1:
         if hasattr(m, 'weight'):
             nn.init.normal_(m.weight, 1.0, args.init_std)
         if hasattr(m, 'bias') and m.bias is not None:

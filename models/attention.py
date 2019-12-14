@@ -3,26 +3,44 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-def _rel_shift(x, zero_triu=False, type=1):
+def _rel_shift(x, zero_triu=False):
     # zero_pad size: [q_len, 1, bsz, n_head]
 
-    if type == 1:
-        zero_pad = torch.zeros((x.size(0), 1, *x.size()[2:]),
-                               device=x.device, dtype=x.dtype)
+    zero_pad = torch.zeros((x.size(0), 1, *x.size()[2:]),
+                           device=x.device, dtype=x.dtype)
 
-        x_padded = torch.cat([zero_pad, x], dim=1   )
+    x_padded = torch.cat([zero_pad, x], dim=1)
 
-        x_padded = x_padded.view(x.size(1) + 1, x.size(0), *x.size()[2:])
+    x_padded = x_padded.view(x.size(1) + 1, x.size(0), *x.size()[2:])
 
-        x = x_padded[1:].view_as(x)
+    x = x_padded[1:].view_as(x)
 
-        # fills the 'unnecessary' parts with zeros
-        if zero_triu:
-            ones = torch.ones((x.size(0), x.size(1)))
-            x = x * torch.tril(ones, x.size(1) - x.size(0))[:, :, None, None]
-    else:
-        raise NotImplementedError
+    # fills the 'unnecessary' parts with zeros
+    if zero_triu:
+        ones = torch.ones((x.size(0), x.size(1)))
+        x = x * torch.tril(ones, x.size(1) - x.size(0))[:, :, None, None]
+
     return x
+
+
+def _rel_future_shift(x):
+
+    qlen, klen = x.size(0), x.size(1)
+
+    # adding the device here is MUCH faster than using device after expanding
+    rel = torch.arange(klen - qlen, -qlen, -1, device=x.device).unsqueeze(0)
+    shift = torch.arange(0, qlen, 1, device=x.device).unsqueeze(1)
+
+    indices = klen - 1 - torch.abs(rel+shift)
+
+    for i in range(x.dim() - 2):
+        indices = indices.unsqueeze(-1)
+
+    indices = indices.expand_as(x)
+
+    output_ = torch.gather(x, 1, indices)
+
+    return output_
 
 
 class MultiHeadAttn(nn.Module):
@@ -331,7 +349,10 @@ class FastRelPartialLearnableMultiHeadAttn(RelMultiHeadAttn):
         # then shift them to efficiently get B and D
         # [bsz, n_head, q_len, k_len] to [q_len, k_len, bsz, n_head]
         BD = BD.transpose(0, 2).transpose(1, 3)
-        BD = self._rel_shift(BD)
+        # BD = self._rel_shift(BD)
+
+        # currently quite slow
+        BD = _rel_future_shift(BD)
         BD = BD.transpose(0, 2).transpose(1, 3)
 
         # [bsz x n_head x qlen x klen]
@@ -470,31 +491,80 @@ class RelLearnableMultiHeadAttn(RelMultiHeadAttn):
 
         return output
 
+
 if __name__ == '__main__':
 
-    bsz = 1
-    n_head = 1
+    bsz = 5
+    n_head = 8
 
     qlen = 5
-    klen = 10
+    klen = 12
 
     x = torch.arange(klen - 1, -1, -1.0).unsqueeze(0).repeat(qlen, 1)
+    input = x.mul(10)
+    print(input)
     # print(x)
-    x = x.unsqueeze(-1).unsqueeze(-1)
+    # x = x.unsqueeze(-1).unsqueeze(-1)
     # x = torch.Tensor(qlen, klen, bsz, n_head)
     # x.normal_(0, 1)
 
-    x = _rel_shift(x, zero_triu=True)
+    output = _rel_shift(input, zero_triu=False)
 
-    print(x)
-    print(x.size())
+    # print(x)
+    # print(x.size())
+    print("REL SHIFT 1 RESULT")
+    print(output)
 
-    # a = torch.arange(5, -5, -1).unsqueeze(0)
-    #
+    idx = torch.arange(0, klen).unsqueeze(0).repeat(qlen, 1)
+    print(idx)
+    shifted_idx = _rel_shift(idx)
+    print(shifted_idx)
+
+    output_2 = torch.gather(input, 1, shifted_idx)
+    print("REL SHIFT 2 RESULT")
+    print(output_2)
+
+    # a = torch.arange(klen - qlen, -qlen, -1).unsqueeze(0)
     # print(a)
-    #
-    # b = torch.arange(0, 5).unsqueeze(1)
-    #
+    # a = torch.arange(-qlen + 1, klen - qlen + 1, 1).unsqueeze(0)
+    # a = torch.cat([torch.arange(0, klen-qlen), torch.arange(qlen, -1, -1)]).unsqueeze(0)
+    # print(a)
+    # a = torch.arange(0, klen).unsqueeze(0)
+    # print(a)
+
+    # b = torch.arange(0, qlen, 1).unsqueeze(1)
+    # print(b)
+
     # c = (a + b)
+    # print(c)
+
+    a = torch.arange(klen - qlen, -qlen, -1).unsqueeze(0)
+    # print(a)
+
+    b = torch.arange(0, qlen, 1).unsqueeze(1)
+    # print(b)
+    # print(c)
+    # print(a+b)
+    c = torch.abs(a+b)
+    rearranged_idx = klen - 1 - c
+
+    output_3 = torch.gather(input, 1, rearranged_idx)
+    print("REL SHIFT 3 RESULT")
+    print(output_3)
+
+    # input_repeat = input.unsqueeze(-1).unsqueeze(-1)
     #
-    # print(torch.abs(c))
+    # input_repeat = input_repeat.repeat(1, 1, bsz, n_head)
+    #
+    # idx = rearranged_idx.unsqueeze(-1).unsqueeze(-1).expand_as(input_repeat)
+    # output_4 = torch.gather(input_repeat, 1, idx)
+
+    print("REL SHIFT 4 RESULT")
+    output_4 = _rel_future_shift(input)
+    print(output_4)
+
+    input_repeat = input.unsqueeze(-1).unsqueeze(-1)
+
+    input_repeat = input_repeat.repeat(1, 1, bsz, n_head)
+    output_5 = _rel_future_shift(input_repeat)
+    print(output_5)

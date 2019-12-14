@@ -18,7 +18,7 @@ import apex.amp as amp
 import apex
 
 
-parser = argparse.ArgumentParser(description='translate.py')
+parser = argparse.ArgumentParser(description='average.py')
 parser.add_argument('--path', required=True,
                     help='Path to model .pt file')
 parser.add_argument('--output', default='model.averaged.pt',

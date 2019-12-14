@@ -140,8 +140,6 @@ def optimize_model(model):
                     setattr(m, attr_str, FusedLayerNorm(target_attr.normalized_shape,
                                                         eps=target_attr.eps,
                                                         elementwise_affine=target_attr.elementwise_affine))
-                    print('replaced: ', name, attr_str)
-
                     # setattr(m, attr_str,
                     #         SynchronizedBatchNorm2d(target_attr.num_features, target_attr.eps, target_attr.momentum,
                     #                                 target_attr.affine))

@@ -3,7 +3,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils.word_drop import embedded_dropout
+from utils.dropout import embedded_dropout
 from torch.nn.modules.loss import _Loss
 sys.path.append('utils')
 sys.path.append('models')
@@ -344,7 +344,6 @@ class MemTransformerLM(nn.Module):
 
     def step(self, data, decoder_state):
         # L x B
-        # print(data.size())
         if not decoder_state:
             # this shouldn't happen (conditional model)
             mems = self.init_mems()
@@ -447,7 +446,6 @@ class DecoderState(object):
         # for i, mem in enumerate(self.mems):
         #     self.mems[i] = None
         self.mems = None
-        print("Coming")
         return
 
 if __name__ == '__main__':
